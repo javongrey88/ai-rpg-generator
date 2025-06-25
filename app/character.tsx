@@ -27,16 +27,36 @@ export default function CharacterScreen() {
   const [customGender, setCustomGender] = useState('');
   const [charClass, setCharClass] = useState(classes[0]);
   const [level, setLevel] = useState('1');
+  const [stats, setStats] = useState({
+    STR: 0,
+    DEX: 0,
+    CON: 0,
+    INT: 0,
+    WIS: 0,
+    CHA: 0
+  });
 
   const handleGenerate = () => {
     const finalGender = gender === 'Custom' ? customGender : gender;
-    console.log('Generating character with:', {
+
+    const newStats = {
+      STR: rollStat(),
+      DEX: rollStat(),
+      CON: rollStat(),
+      INT: rollStat(),
+      WIS: rollStat(),
+      CHA: rollStat()
+    };
+
+    setStats(newStats);
+
+    console.log('Generated Character:', {
       race,
       gender: finalGender,
       charClass,
       level,
+      stats: newStats
     });
-    // Later: call AI to generate stats, backstory, image
   };
 
   return (
@@ -90,6 +110,15 @@ export default function CharacterScreen() {
       <Pressable style={styles.button} onPress={handleGenerate}>
         <Text style={styles.buttonText}>Generate Character</Text>
       </Pressable>
+
+      <View style={styles.statsContainer}>
+        <Text style={styles.statsTitle}>Stats</Text>
+        {Object.entries(stats).map(([key, value]) => (
+          <Text key={key} style={styles.statText}>
+            {key}: {value}
+          </Text>
+        ))}
+      </View>
     </View>
   );
 }
@@ -141,6 +170,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
   },
+  statsContainer: {
+    marginTop: 30,
+    backgroundColor: '#2c2c44',
+    padding: 15,
+    borderRadius: 10,
+  },
+  statsTitle: {
+    color: '#fff',
+    fontSize: 18,
+    marginBottom: 10,
+    fontWeight: 'bold',
+  },
+  statText: {
+    color: '#fff',
+    fontSize: 16,
+    lineHeight: 24,
+  },
 });
+
+function rollStat(): number {
+  const rolls = Array.from({ length: 4 }, () => Math.floor(Math.random() * 6) + 1);
+  rolls.sort((a, b) => a - b);
+  return rolls.slice(1).reduce((sum, val) => sum + val, 0);
+}
+
 
 

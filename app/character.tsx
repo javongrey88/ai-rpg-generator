@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
+import { ScrollView, Text, StyleSheet, Pressable, TextInput } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { classFeatures } from '../data/classFeatures';
+import { raceFeatures } from '../data/raceFeatures';
+import { View } from 'react-native';
+
 
 const races = [
   'Aarakocra', 'Aasimar', 'Bugbear', 'Centaur', 'Changeling', 'Dragonborn',
@@ -36,6 +40,15 @@ export default function CharacterScreen() {
     CHA: 0
   });
 
+  const [charClassFeatures, setCharClassFeatures] = useState<string[]>([]);
+  const [charRaceFeatures, setCharRaceFeatures] = useState<{
+    abilityScoreIncrease: string[];
+    traits: string[];
+  }>({
+    abilityScoreIncrease: [],
+    traits: []
+  });
+
   const handleGenerate = () => {
     const finalGender = gender === 'Custom' ? customGender : gender;
 
@@ -48,19 +61,35 @@ export default function CharacterScreen() {
       CHA: rollStat()
     };
 
+    const selectedLevel = parseInt(level, 10);
+    const baseClass = classFeatures[charClass]?.base || [];
+    const levelClass = Object.entries(classFeatures[charClass] || {})
+      .filter(([lvl]) => !isNaN(Number(lvl)) && Number(lvl) <= selectedLevel)
+      .flatMap(([, feats]) => feats);
+    const finalClassFeatures = [...baseClass, ...levelClass];
+
+    const finalRaceFeatures = raceFeatures[race] || {
+      abilityScoreIncrease: [],
+      traits: []
+    };
+
     setStats(newStats);
+    setCharClassFeatures(finalClassFeatures);
+    setCharRaceFeatures(finalRaceFeatures);
 
     console.log('Generated Character:', {
       race,
       gender: finalGender,
       charClass,
       level,
-      stats: newStats
+      stats: newStats,
+      classFeatures: finalClassFeatures,
+      raceFeatures: finalRaceFeatures
     });
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>🧝 Character Generator</Text>
 
       <Text style={styles.label}>Race</Text>
@@ -119,15 +148,47 @@ export default function CharacterScreen() {
           </Text>
         ))}
       </View>
-    </View>
+
+      {charClassFeatures.length > 0 && (
+        <View style={styles.featuresContainer}>
+          <Text style={styles.featuresTitle}>Class Features</Text>
+          {charClassFeatures.map((f, idx) => (
+            <Text key={idx} style={styles.featureItem}>• {f}</Text>
+          ))}
+        </View>
+      )}
+
+      {(charRaceFeatures.traits.length > 0 || charRaceFeatures.abilityScoreIncrease.length > 0) && (
+        <View style={styles.featuresContainer}>
+          <Text style={styles.featuresTitle}>Race Features</Text>
+
+          <Text style={styles.subheading}>Ability Score Increases</Text>
+          {charRaceFeatures.abilityScoreIncrease.map((asi, idx) => (
+            <Text key={`asi-${idx}`} style={styles.featureItem}>• {asi}</Text>
+          ))}
+
+          <Text style={styles.subheading}>Traits</Text>
+          {charRaceFeatures.traits.map((trait, idx) => (
+            <Text key={`trait-${idx}`} style={styles.featureItem}>• {trait}</Text>
+          ))}
+        </View>
+      )}
+    </ScrollView>
   );
+}
+
+function rollStat(): number {
+  const rolls = Array.from({ length: 4 }, () => Math.floor(Math.random() * 6) + 1);
+  rolls.sort((a, b) => a - b);
+  return rolls.slice(1).reduce((sum, val) => sum + val, 0);
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: '#1e1e2f',
     padding: 20,
+    paddingBottom: 50,
   },
   title: {
     fontSize: 26,
@@ -187,13 +248,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
   },
+  featuresContainer: {
+    marginTop: 30,
+    backgroundColor: '#2c2c44',
+    padding: 15,
+    borderRadius: 10,
+  },
+  featuresTitle: {
+    color: '#fff',
+    fontSize: 18,
+    marginBottom: 10,
+    fontWeight: 'bold',
+  },
+  subheading: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  featureItem: {
+    color: '#bbb',
+    fontSize: 14,
+    marginBottom: 5,
+  },
 });
 
-function rollStat(): number {
-  const rolls = Array.from({ length: 4 }, () => Math.floor(Math.random() * 6) + 1);
-  rolls.sort((a, b) => a - b);
-  return rolls.slice(1).reduce((sum, val) => sum + val, 0);
-}
+
+
+
+
 
 
 

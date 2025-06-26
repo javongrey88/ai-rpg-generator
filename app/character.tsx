@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
-import { ScrollView, Text, StyleSheet, Pressable, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { ScrollView, Text, StyleSheet, Pressable, TextInput, View } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { classFeatures } from '../data/classFeatures';
 import { raceFeatures } from '../data/raceFeatures';
-import { View } from 'react-native';
-
 
 const races = [
   'Aarakocra', 'Aasimar', 'Bugbear', 'Centaur', 'Changeling', 'Dragonborn',
@@ -17,13 +15,20 @@ const races = [
 ];
 
 const genders = ['Male', 'Female', 'Non-binary', 'Custom'];
-
 const classes = [
-  'Artificer', 'Barbarian', 'Bard', 'Blood Hunter', 'Cleric', 'Druid', 'Fighter',
+  'Artificer', 'Barbarian', 'Bard', 'BloodHunter', 'Cleric', 'Druid', 'Fighter',
   'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 'Warlock', 'Wizard'
 ];
-
 const levels = Array.from({ length: 20 }, (_, i) => `${i + 1}`);
+
+type StatBlock = {
+  STR: number;
+  DEX: number;
+  CON: number;
+  INT: number;
+  WIS: number;
+  CHA: number;
+};
 
 export default function CharacterScreen() {
   const [race, setRace] = useState(races[0]);
@@ -31,28 +36,16 @@ export default function CharacterScreen() {
   const [customGender, setCustomGender] = useState('');
   const [charClass, setCharClass] = useState(classes[0]);
   const [level, setLevel] = useState('1');
-  const [stats, setStats] = useState({
-    STR: 0,
-    DEX: 0,
-    CON: 0,
-    INT: 0,
-    WIS: 0,
-    CHA: 0
-  });
-
+  const [stats, setStats] = useState<StatBlock>({ STR: 0, DEX: 0, CON: 0, INT: 0, WIS: 0, CHA: 0 });
+  const [savedStats, setSavedStats] = useState<StatBlock | null>(null);
   const [charClassFeatures, setCharClassFeatures] = useState<string[]>([]);
-  const [charRaceFeatures, setCharRaceFeatures] = useState<{
-    abilityScoreIncrease: string[];
-    traits: string[];
-  }>({
+  const [charRaceFeatures, setCharRaceFeatures] = useState<{ abilityScoreIncrease: string[]; traits: string[] }>({
     abilityScoreIncrease: [],
     traits: []
   });
 
-  const handleGenerate = () => {
-    const finalGender = gender === 'Custom' ? customGender : gender;
-
-    const newStats = {
+  const handleGenerateStats = () => {
+    const newStats: StatBlock = {
       STR: rollStat(),
       DEX: rollStat(),
       CON: rollStat(),
@@ -61,32 +54,35 @@ export default function CharacterScreen() {
       CHA: rollStat()
     };
 
+    // Add level-based bonus points
+    const bonusPoints = Math.floor(parseInt(level, 10) / 4);
+    const statKeys: (keyof StatBlock)[] = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+
+    for (let i = 0; i < bonusPoints; i++) {
+      const randomKey = statKeys[Math.floor(Math.random() * statKeys.length)];
+      newStats[randomKey] += 1;
+    }
+
+    setStats(newStats);
+  };
+
+  const handleSave = () => {
+    setSavedStats({ ...stats });
+  };
+
+  const getClassAndRaceFeatures = () => {
     const selectedLevel = parseInt(level, 10);
     const baseClass = classFeatures[charClass]?.base || [];
     const levelClass = Object.entries(classFeatures[charClass] || {})
       .filter(([lvl]) => !isNaN(Number(lvl)) && Number(lvl) <= selectedLevel)
       .flatMap(([, feats]) => feats);
-    const finalClassFeatures = [...baseClass, ...levelClass];
-
-    const finalRaceFeatures = raceFeatures[race] || {
-      abilityScoreIncrease: [],
-      traits: []
-    };
-
-    setStats(newStats);
-    setCharClassFeatures(finalClassFeatures);
-    setCharRaceFeatures(finalRaceFeatures);
-
-    console.log('Generated Character:', {
-      race,
-      gender: finalGender,
-      charClass,
-      level,
-      stats: newStats,
-      classFeatures: finalClassFeatures,
-      raceFeatures: finalRaceFeatures
-    });
+    setCharClassFeatures([...baseClass, ...levelClass]);
+    setCharRaceFeatures(raceFeatures[race] || { abilityScoreIncrease: [], traits: [] });
   };
+
+  useEffect(() => {
+    getClassAndRaceFeatures();
+  }, [race, charClass, level]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -98,14 +94,7 @@ export default function CharacterScreen() {
       </Picker>
 
       <Text style={styles.label}>Gender</Text>
-      <Picker
-        selectedValue={gender}
-        onValueChange={(value) => {
-          setGender(value);
-          if (value !== 'Custom') setCustomGender('');
-        }}
-        style={styles.picker}
-      >
+      <Picker selectedValue={gender} onValueChange={(value) => { setGender(value); if (value !== 'Custom') setCustomGender(''); }} style={styles.picker}>
         {genders.map((g) => <Picker.Item key={g} label={g} value={g} />)}
       </Picker>
 
@@ -114,9 +103,7 @@ export default function CharacterScreen() {
           <Text style={styles.label}>Enter Custom Gender</Text>
           <TextInput
             value={customGender}
-            onChangeText={(text) => {
-              if (text.length <= 50) setCustomGender(text);
-            }}
+            onChangeText={(text) => text.length <= 50 && setCustomGender(text)}
             placeholder="Type custom gender..."
             placeholderTextColor="#aaa"
             style={styles.input}
@@ -136,43 +123,39 @@ export default function CharacterScreen() {
         {levels.map((lvl) => <Picker.Item key={lvl} label={lvl} value={lvl} />)}
       </Picker>
 
-      <Pressable style={styles.button} onPress={handleGenerate}>
-        <Text style={styles.buttonText}>Generate Character</Text>
+      <View style={styles.featuresContainer}>
+        <Text style={styles.featuresTitle}>Race Features</Text>
+        <Text style={styles.subheading}>Ability Score Increases</Text>
+        {charRaceFeatures.abilityScoreIncrease.map((asi, idx) => (
+          <Text key={`asi-${idx}`} style={styles.featureItem}>• {asi}</Text>
+        ))}
+        <Text style={styles.subheading}>Traits</Text>
+        {charRaceFeatures.traits.map((trait, idx) => (
+          <Text key={`trait-${idx}`} style={styles.featureItem}>• {trait}</Text>
+        ))}
+      </View>
+
+      <View style={styles.featuresContainer}>
+        <Text style={styles.featuresTitle}>Class Features</Text>
+        {charClassFeatures.map((f, idx) => (
+          <Text key={idx} style={styles.featureItem}>• {f}</Text>
+        ))}
+      </View>
+
+      <Pressable style={styles.button} onPress={handleGenerateStats}>
+        <Text style={styles.buttonText}>Generate Attributes</Text>
       </Pressable>
 
       <View style={styles.statsContainer}>
         <Text style={styles.statsTitle}>Stats</Text>
         {Object.entries(stats).map(([key, value]) => (
-          <Text key={key} style={styles.statText}>
-            {key}: {value}
-          </Text>
+          <Text key={key} style={styles.statText}>{key}: {value}</Text>
         ))}
       </View>
 
-      {charClassFeatures.length > 0 && (
-        <View style={styles.featuresContainer}>
-          <Text style={styles.featuresTitle}>Class Features</Text>
-          {charClassFeatures.map((f, idx) => (
-            <Text key={idx} style={styles.featureItem}>• {f}</Text>
-          ))}
-        </View>
-      )}
-
-      {(charRaceFeatures.traits.length > 0 || charRaceFeatures.abilityScoreIncrease.length > 0) && (
-        <View style={styles.featuresContainer}>
-          <Text style={styles.featuresTitle}>Race Features</Text>
-
-          <Text style={styles.subheading}>Ability Score Increases</Text>
-          {charRaceFeatures.abilityScoreIncrease.map((asi, idx) => (
-            <Text key={`asi-${idx}`} style={styles.featureItem}>• {asi}</Text>
-          ))}
-
-          <Text style={styles.subheading}>Traits</Text>
-          {charRaceFeatures.traits.map((trait, idx) => (
-            <Text key={`trait-${idx}`} style={styles.featureItem}>• {trait}</Text>
-          ))}
-        </View>
-      )}
+      <Pressable style={styles.saveButton} onPress={handleSave}>
+        <Text style={styles.buttonText}>Save Character</Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -226,6 +209,12 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
   },
+  saveButton: {
+    marginTop: 30,
+    backgroundColor: '#00b894',
+    padding: 15,
+    borderRadius: 10,
+  },
   buttonText: {
     color: '#fff',
     textAlign: 'center',
@@ -273,6 +262,12 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
 });
+
+
+
+
+
+
 
 
 

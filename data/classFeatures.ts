@@ -50,8 +50,32 @@ export const classFeatures: {
     20: ['Primal Champion']
   },
 
+  Bard: {
+    base: ['Spellcasting', 'Bardic Inspiration (d6)'],
+    2: ['Jack of All Trades', 'Song of Rest (d6)'],
+    3: ['Bard College', 'Expertise'],
+    4: ['Ability Score Improvement'],
+    5: ['Bardic Inspiration (d8)', 'Font of Inspiration'],
+    6: ['Countercharm', 'Bard College Feature'],
+    7: ['Song of Rest (d8)'],
+    8: ['Ability Score Improvement'],
+    9: ['Song of Rest (d10)'],
+    10: ['Expertise', 'Magical Secrets', 'Bardic Inspiration (d10)'],
+    11: [],
+    12: ['Ability Score Improvement'],
+    13: ['Song of Rest (d12)'],
+    14: ['Magical Secrets', 'Bard College Feature'],
+    15: [],
+    16: ['Ability Score Improvement'],
+    17: ['Bardic Inspiration (d12)'],
+    18: ['Magical Secrets'],
+    19: ['Ability Score Improvement'],
+    20: ['Superior Inspiration']
+  },
+
+
   BloodHunter: {
-    base: ['Hunter’s Bane', 'Blood Maledict'],
+    base: ['Hunter Bane', 'Blood Maledict'],
     2: ['Fighting Style', 'Crimson Rite'],
     3: ['Blood Hunter Order'],
     4: ['Ability Score Improvement'],
